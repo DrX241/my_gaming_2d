@@ -1,0 +1,9 @@
+{
+  "name": "Exploration 2D",
+  "short_name": "Exploration",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "landscape-primary",
+  "background_color": "#0a0d1a",
+  "theme_color": "#0a0d1a"
+}

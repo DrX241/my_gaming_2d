@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0d1a" />
+  <title>Exploration 2D</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="portrait-lock" class="portrait-lock" role="dialog" aria-modal="true" aria-labelledby="portrait-lock-title">
+    <div class="portrait-lock-inner">
+      <p class="portrait-lock-icon" aria-hidden="true">📱</p>
+      <p id="portrait-lock-title" class="portrait-lock-title">Passe en paysage</p>
+      <p class="portrait-lock-hint">Tourne ton téléphone ou ta tablette : le jeu est prévu pour le mode paysage.</p>
+    </div>
+  </div>
+  <main class="layout">
+    <div class="help" role="note">
+      <span class="help-dpad" aria-hidden="true">↑ ↓ ← →</span>
+      <span class="help-txt">· E : Interagir · O : Atelier</span>
+    </div>
+    <canvas id="game"></canvas>
+    <div id="message">Explore la pièce...</div>
+    
+    <!-- SQL Challenge Modal -->
+    <div id="sqlModal" class="sql-modal" style="display: none;">
+      <div class="sql-container">
+        <div class="sql-header">
+          <h2 id="sqlTitle">Atelier SQL</h2>
+          <button type="button" class="sql-close" onclick="closeSQLChallenge()" aria-label="Fermer">×</button>
+        </div>
+        <p id="sqlSessionHint" class="session-hint" style="display: none" role="note"></p>
+        
+        <div class="sql-content">
+          <div id="sqlContent" class="sql-main-content"></div>
+          
+          <!-- Mode Introduction/Conclusion -->
+          <div id="sqlIntroMode" style="display: none;">
+            <textarea id="sqlIntroText" class="sql-intro-text" readonly></textarea>
+            <div class="sql-buttons">
+              <button class="sql-btn next" id="sqlIntroBtn" onclick="nextSQLChallenge()">Commencer</button>
+              <button class="sql-btn cancel" onclick="closeSQLChallenge()">Fermer</button>
+            </div>
+          </div>
+          
+          <!-- Mode Défi -->
+          <div id="sqlChallengeMode" style="display: none;">
+            <div id="sqlQuestion" class="sql-question"></div>
+            <div id="sqlTable" class="sql-table"></div>
+            <div id="sqlSchema" class="sql-schema"></div>
+            <div id="sqlExample" class="sql-example"></div>
+            <div id="sqlExplanation" class="sql-explanation"></div>
+            
+            <textarea 
+              id="sqlInput" 
+              class="sql-input" 
+              placeholder="Saisissez votre requête SQL…"
+              spellcheck="false"
+            ></textarea>
+            
+            <div id="sqlFeedback" class="sql-feedback" style="display: none;"></div>
+            <div id="sqlResults" class="sql-results" style="display: none;"></div>
+            <div id="sqlHint" class="sql-hint"></div>
+            
+            <div class="sql-buttons">
+              <button type="button" class="sql-btn submit" id="sqlSubmitBtn" onclick="submitSQLAnswer()">Valider (Ctrl+Entrée)</button>
+              <button type="button" class="sql-btn next" id="sqlNextBtn" onclick="nextSQLChallenge()" style="display: none;">Défi suivant</button>
+              <button type="button" class="sql-btn hint-btn" onclick="showSQLHint()">Indice</button>
+              <button type="button" class="sql-btn cancel" onclick="closeSQLChallenge()">Annuler (Échap)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Atelier Python (Département Data & IA) -->
+    <div id="pythonModal" class="sql-modal" style="display: none;">
+      <div class="sql-container">
+        <div class="sql-header">
+          <h2 id="pythonModalTitle">Atelier Python</h2>
+          <button type="button" class="sql-close" onclick="closePythonAtelier()" aria-label="Fermer">×</button>
+        </div>
+        <p id="pythonSessionHint" class="session-hint" style="display: none" role="note"></p>
+        <div class="sql-content">
+          <div id="pythonIntroMode" style="display: none;">
+            <textarea id="pythonIntroText" class="sql-intro-text" readonly></textarea>
+            <div class="sql-buttons">
+              <button type="button" class="sql-btn next" id="pythonIntroBtn" onclick="nextPythonChallenge()">Commencer</button>
+              <button type="button" class="sql-btn cancel" onclick="closePythonAtelier()">Fermer</button>
+            </div>
+          </div>
+
+          <div id="pythonChallengeMode" style="display: none;">
+            <div id="pythonQuestion" class="sql-question"></div>
+            <div id="pythonDoc" class="sql-schema"></div>
+            <div id="pythonExplanation" class="sql-explanation"></div>
+            <label for="pythonCodeInput" style="display:block; margin-bottom:6px; font-size:13px;">Votre code Python</label>
+            <textarea
+              id="pythonCodeInput"
+              class="sql-input"
+              placeholder="# Votre code Python…"
+              spellcheck="false"
+              rows="10"
+            ></textarea>
+            <label for="pythonSandboxOutput" style="display:block; margin-top:10px; margin-bottom:6px; font-size:13px;">Sortie (bac à sable)</label>
+            <pre id="pythonSandboxOutput" class="python-sandbox-output" aria-live="polite"></pre>
+            <div id="pythonFeedback" class="sql-feedback" style="display: none;"></div>
+            <div id="pythonHint" class="sql-hint"></div>
+            <div class="sql-buttons">
+              <button type="button" class="sql-btn submit" onclick="submitPythonAnswer()">Valider (Ctrl+Entrée)</button>
+              <button type="button" class="sql-btn hint-btn" onclick="showPythonHint()">Indice</button>
+              <button type="button" class="sql-btn cancel" onclick="closePythonAtelier()">Fermer (Échap)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Atelier cybersécurité (Département Data & IA) -->
+    <div id="cyberModal" class="sql-modal" style="display: none;">
+      <div class="sql-container">
+        <div class="sql-header">
+          <h2 id="cyberModalTitle">Cybersécurité</h2>
+          <button type="button" class="sql-close" onclick="closeCyberAtelier()" aria-label="Fermer">×</button>
+        </div>
+        <p id="cyberSessionHint" class="session-hint" style="display: none" role="note"></p>
+        <div class="sql-content">
+          <div id="cyberIntroMode" style="display: none;">
+            <textarea id="cyberIntroText" class="sql-intro-text" readonly></textarea>
+            <div class="sql-buttons">
+              <button type="button" class="sql-btn next" id="cyberIntroBtn" onclick="nextCyberChallenge()">Commencer</button>
+              <button type="button" class="sql-btn cancel" onclick="closeCyberAtelier()">Fermer</button>
+            </div>
+          </div>
+
+          <div id="cyberChallengeMode" style="display: none;">
+            <div id="cyberQuestion" class="sql-question"></div>
+            <div id="cyberDoc" class="sql-schema"></div>
+            <div id="cyberChoices" class="cyber-choice-row">
+              <button type="button" class="sql-btn cyber-choice-btn" id="cyberOptA" onclick="submitCyberChoice('A')">A</button>
+              <button type="button" class="sql-btn cyber-choice-btn" id="cyberOptB" onclick="submitCyberChoice('B')">B</button>
+              <button type="button" class="sql-btn cyber-choice-btn" id="cyberOptC" onclick="submitCyberChoice('C')">C</button>
+            </div>
+            <div id="cyberFeedback" class="sql-feedback" style="display: none;"></div>
+            <div id="cyberHint" class="sql-hint"></div>
+            <div class="sql-buttons">
+              <button type="button" class="sql-btn hint-btn" onclick="showCyberHint()">Indice</button>
+              <button type="button" class="sql-btn cancel" onclick="closeCyberAtelier()">Fermer (Échap)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Console supervision salle serveurs -->
+    <div id="serverControlModal" class="sql-modal" style="display: none;">
+      <div class="sql-container">
+        <div class="sql-header">
+          <h2>Console de supervision — FYNE</h2>
+          <button type="button" class="sql-close" onclick="closeServerControlPanel()" aria-label="Fermer">×</button>
+        </div>
+        <div class="sql-content server-control-body">
+          <p class="npc-chat-hint">Contrôle symbolique (données locales). Les vrais ateliers restent sur les PC du Département Data & IA.</p>
+          <label class="server-toggle">
+            <input type="checkbox" id="serverPcSalleInfoToggle" onchange="toggleServerPcSalleInfo()" />
+            Postes Département Data & IA « en ligne » (simulation)
+          </label>
+          <p class="server-stat">Défis SQL dans le jeu : <strong id="serverSqlChallengesCount">0</strong></p>
+          <p class="server-stat">Ajouter un défi (titre, liste locale) :</p>
+          <div class="server-add-row">
+            <input type="text" id="serverAddChallengeTitle" class="npc-chat-input" maxlength="200" placeholder="Titre du défi…" />
+            <button type="button" class="sql-btn submit" onclick="addServerCustomChallenge()">Ajouter</button>
+          </div>
+          <ul id="serverCustomChallengesList" class="server-challenge-list"></ul>
+          <div class="sql-buttons">
+            <button type="button" class="sql-btn cancel" onclick="closeServerControlPanel()">Fermer (Échap)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Console d’administration (salle dédiée, porte code ingame 5284) -->
+    <div id="welcomeKioskModal" class="sql-modal admin-console-overlay" style="display: none;">
+      <div class="admin-console-shell">
+        <header class="admin-console-top">
+          <div class="admin-console-brand">
+            <span class="admin-console-badge" aria-hidden="true">◆</span>
+            <div>
+              <h2 class="admin-console-title">Console d’administration</h2>
+              <p class="admin-console-sub">Paramétrage applicatif — profil, accès, PNJ, salles, tests</p>
+            </div>
+          </div>
+          <button type="button" class="sql-close admin-console-close" onclick="closeWelcomeKioskModal()" aria-label="Fermer">×</button>
+        </header>
+        <div class="admin-console-grid">
+          <nav class="admin-console-nav" aria-label="Sections paramétrage">
+            <button type="button" class="admin-nav-btn is-active" data-admin-section="profil" onclick="adminConsoleShowSection('profil')">Profil &amp; session</button>
+            <button type="button" class="admin-nav-btn" data-admin-section="acces" onclick="adminConsoleShowSection('acces')">Accès &amp; sécurité</button>
+            <button type="button" class="admin-nav-btn" data-admin-section="pnj" onclick="adminConsoleShowSection('pnj')">PNJ &amp; personas</button>
+            <button type="button" class="admin-nav-btn" data-admin-section="salles" onclick="adminConsoleShowSection('salles')">Salles &amp; portes</button>
+            <button type="button" class="admin-nav-btn" data-admin-section="tests" onclick="adminConsoleShowSection('tests')">Tests &amp; ateliers</button>
+          </nav>
+          <div class="admin-console-main">
+            <section id="adminSection-profil" class="admin-panel is-active" aria-labelledby="adminHeadingProfil">
+              <h3 id="adminHeadingProfil" class="admin-panel-title">Profil joueur &amp; préférences</h3>
+              <p class="admin-panel-desc">Données utilisées par les PNJ (Gemini) et les messages d’accueil dans les zones.</p>
+              <div class="admin-form-grid">
+                <label class="admin-field" for="welcomeFirstName"><span>Prénom</span>
+                  <input type="text" id="welcomeFirstName" class="admin-input" maxlength="60" placeholder="Ex. Alex" autocomplete="given-name" />
+                </label>
+                <label class="admin-field" for="welcomeLevel"><span>Niveau tech</span>
+                  <select id="welcomeLevel" class="admin-input">
+                    <option value="debutant">Débutant</option>
+                    <option value="intermediaire">Intermédiaire</option>
+                    <option value="avance">Avancé</option>
+                  </select>
+                </label>
+              </div>
+              <p class="admin-field-label">Façon d’apprendre (plusieurs choix)</p>
+              <div class="admin-chips">
+                <label><input type="checkbox" id="welcomeLearn_jeu" /> Jeu / ludique</label>
+                <label><input type="checkbox" id="welcomeLearn_cours" /> Cours classique</label>
+                <label><input type="checkbox" id="welcomeLearn_defis" /> Défis / quiz</label>
+                <label><input type="checkbox" id="welcomeLearn_video" /> Vidéos / démos</label>
+                <label><input type="checkbox" id="welcomeLearn_pratique" /> Pratique guidée</label>
+                <label><input type="checkbox" id="welcomeLearn_doc" /> Documentation</label>
+              </div>
+              <div class="admin-form-grid">
+                <label class="admin-field" for="welcomeJobTitle"><span>Poste (facultatif)</span>
+                  <input type="text" id="welcomeJobTitle" class="admin-input" maxlength="120" placeholder="Ex. Alternant, développeur junior…" autocomplete="organization-title" />
+                </label>
+                <label class="admin-field" for="welcomeSector"><span>Secteur (facultatif)</span>
+                  <input type="text" id="welcomeSector" class="admin-input" maxlength="120" placeholder="Ex. Santé, finance…" />
+                </label>
+              </div>
+              <p class="admin-field-label">Centres d’intérêt</p>
+              <div class="admin-chips">
+                <label><input type="checkbox" id="welcomeInterest_sql" /> SQL</label>
+                <label><input type="checkbox" id="welcomeInterest_python" /> Python</label>
+                <label><input type="checkbox" id="welcomeInterest_cyber" /> Cybersécurité</label>
+                <label><input type="checkbox" id="welcomeInterest_serveurs" /> Serveurs / infra</label>
+                <label><input type="checkbox" id="welcomeInterest_rgpd" /> RGPD / archives</label>
+              </div>
+              <label class="admin-field admin-field-block" for="welcomeGoal"><span>Objectif ou contexte (facultatif)</span>
+                <textarea id="welcomeGoal" class="admin-textarea" rows="3" maxlength="500" placeholder="Ex. Réviser les jointures avant un entretien…"></textarea>
+              </label>
+            </section>
+            <section id="adminSection-acces" class="admin-panel" aria-labelledby="adminHeadingAcces">
+              <h3 id="adminHeadingAcces" class="admin-panel-title">Accès &amp; sécurité</h3>
+              <div class="admin-placeholder-card">
+                <p><strong>Entrée</strong> — saisie du PIN sur le <strong>clavier à l’écran</strong> (E sur la porte). Code démo : <code class="admin-code">5284</code>.</p>
+                <p class="admin-muted">Évolution : rôles, matrice des droits, journaux d’audit.</p>
+              </div>
+            </section>
+            <section id="adminSection-pnj" class="admin-panel" aria-labelledby="adminHeadingPnj">
+              <h3 id="adminHeadingPnj" class="admin-panel-title">PNJ &amp; personas</h3>
+              <p class="admin-panel-desc">Synthèse de session (ateliers ouverts, défis SQL / Python / cyber) et instructions système Gemini — nécessite le serveur Node (<code class="admin-code">node server.js</code>).</p>
+              <h4 class="admin-subheading">Vue session</h4>
+              <div id="adminGameplaySnapshot" class="admin-gameplay-snapshot" aria-live="polite"></div>
+              <p class="admin-actions-row">
+                <button type="button" class="sql-btn cancel" onclick="refreshAdminPnjPanel()">Actualiser la vue</button>
+              </p>
+              <h4 class="admin-subheading">Prompts système (serveur)</h4>
+              <p id="personaInstructionsStatus" class="admin-muted"></p>
+              <p class="admin-muted">Champ vide = texte par défaut dans <code class="admin-code">server.js</code>. Enregistrement dans <code class="admin-code">data/persona-overrides.json</code>.</p>
+              <label class="admin-field admin-field-block" for="personaPromptAldo"><span>Aldo</span>
+                <textarea id="personaPromptAldo" class="admin-textarea admin-textarea-lg" rows="5" maxlength="120000" placeholder="Vide = défaut serveur"></textarea>
+              </label>
+              <label class="admin-field admin-field-block" for="personaPromptSandro"><span>Sandro</span>
+                <textarea id="personaPromptSandro" class="admin-textarea admin-textarea-lg" rows="5" maxlength="120000" placeholder="Vide = défaut serveur"></textarea>
+              </label>
+              <label class="admin-field admin-field-block" for="personaPromptManu"><span>Manu</span>
+                <textarea id="personaPromptManu" class="admin-textarea admin-textarea-lg" rows="5" maxlength="120000" placeholder="Vide = défaut serveur"></textarea>
+              </label>
+              <label class="admin-field admin-field-block" for="personaPromptAlice"><span>Alice (Service Formation)</span>
+                <textarea id="personaPromptAlice" class="admin-textarea admin-textarea-lg" rows="4" maxlength="120000" placeholder="Vide = défaut serveur"></textarea>
+              </label>
+              <label class="admin-field admin-field-block" for="personaPromptTraining"><span>Plan de formation (5 questions)</span>
+                <textarea id="personaPromptTraining" class="admin-textarea admin-textarea-lg" rows="4" maxlength="120000" placeholder="Vide = défaut serveur"></textarea>
+              </label>
+              <p class="admin-actions-row">
+                <button type="button" class="sql-btn submit" onclick="savePersonaInstructions()">Enregistrer les prompts sur le serveur</button>
+              </p>
+            </section>
+            <section id="adminSection-salles" class="admin-panel" aria-labelledby="adminHeadingSalles">
+              <h3 id="adminHeadingSalles" class="admin-panel-title">Salles &amp; portes</h3>
+              <div class="admin-placeholder-card">
+                <p>Carte des zones, libellés, codes de portes et règles d’accès par salle.</p>
+                <p class="admin-muted">Prévu pour centraliser le paramétrage sans recompiler le client.</p>
+              </div>
+            </section>
+            <section id="adminSection-tests" class="admin-panel" aria-labelledby="adminHeadingTests">
+              <h3 id="adminHeadingTests" class="admin-panel-title">Tests &amp; ateliers</h3>
+              <div class="admin-placeholder-card">
+                <p>Activation des défis SQL / Python / cyber, jeux de données, seuils et feedback.</p>
+                <p class="admin-muted">Complète la console « salle serveurs » pour le contenu technique.</p>
+              </div>
+            </section>
+          </div>
+        </div>
+        <footer class="admin-console-footer">
+          <button type="button" class="sql-btn submit" onclick="saveWelcomeFormAndClose()">Enregistrer le profil</button>
+          <button type="button" class="sql-btn cancel" onclick="closeWelcomeKioskModal()">Fermer (Échap)</button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- PIN — entrée salle administrateur (5284 = SERVER_ROOM_CODE dans game.js) -->
+    <div id="adminPinModal" class="sql-modal admin-pin-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="adminPinTitle">
+      <div class="admin-pin-shell">
+        <h3 id="adminPinTitle">Salle administrateur</h3>
+        <p class="admin-pin-hint">Code PIN à 4 chiffres</p>
+        <div id="adminPinDisplay" class="admin-pin-display" aria-live="polite">○ ○ ○ ○</div>
+        <div class="admin-pin-grid">
+          <button type="button" class="admin-pin-key" onclick="adminPinDigit(1)">1</button>
+          <button type="button" class="admin-pin-key" onclick="adminPinDigit(2)">2</button>
+          <button type="button" class="admin-pin-key" onclick="adminPinDigit(3)">3</button>
+          <button type="button" class="admin-pin-key" onclick="adminPinDigit(4)">4</button>
+          <button type="button" class="admin-pin-key" onclick="adminPinDigit(5)">5</button>
+          <button type="button" class="admin-pin-key" onclick="adminPinDigit(6)">6</button>
+          <button type="button" class="admin-pin-key" onclick="adminPinDigit(7)">7</button>
+          <button type="button" class="admin-pin-key" onclick="adminPinDigit(8)">8</button>
+          <button type="button" class="admin-pin-key" onclick="adminPinDigit(9)">9</button>
+          <button type="button" class="admin-pin-key admin-pin-key-wide" onclick="adminPinBackspace()">⌫</button>
+          <button type="button" class="admin-pin-key" onclick="adminPinDigit(0)">0</button>
+          <button type="button" class="admin-pin-key admin-pin-key-go" onclick="submitAdminPin()">OK</button>
+        </div>
+        <div class="admin-pin-actions">
+          <button type="button" class="sql-btn cancel" onclick="closeAdminPinModal()">Annuler (Échap)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Service Formation — 5 questions → plan généré (Gemini) -->
+    <div id="formationServiceModal" class="sql-modal" style="display: none;">
+      <div class="sql-container formation-service-shell">
+        <div class="sql-header">
+          <h2>Service Formation</h2>
+          <button type="button" class="sql-close" onclick="closeFormationServiceModal()" aria-label="Fermer">×</button>
+        </div>
+        <div class="sql-content formation-service-body">
+          <p class="npc-chat-hint">Répondez aux 5 questions ; l’IA produit un plan de formation adapté (Markdown). Une clé API Gemini côté serveur est requise.</p>
+          <label class="formation-label" for="formationObjective">1. Objectif ou besoin principal</label>
+          <textarea id="formationObjective" class="formation-textarea" rows="3" maxlength="4000" placeholder="Ex. : monter en compétence sur SQL et la mise en conformité RGPD pour un projet CRM…"></textarea>
+          <label class="formation-label" for="formationAudience">2. Public cible</label>
+          <textarea id="formationAudience" class="formation-textarea" rows="2" maxlength="2000" placeholder="Niveau, rôles, taille d’équipe…"></textarea>
+          <label class="formation-label" for="formationDuration">3. Durée ou rythme souhaité</label>
+          <input type="text" id="formationDuration" class="formation-input" maxlength="800" placeholder="Ex. : 3 jours sur 2 semaines, demi-journées…" />
+          <label class="formation-label" for="formationTopics">4. Thématiques ou compétences prioritaires</label>
+          <textarea id="formationTopics" class="formation-textarea" rows="2" maxlength="2000" placeholder="SQL, Python, cybersécurité, IA Act, soft skills…"></textarea>
+          <label class="formation-label" for="formationConstraints">5. Contraintes ou contexte</label>
+          <textarea id="formationConstraints" class="formation-textarea" rows="2" maxlength="2000" placeholder="Distanciel, langue, outils imposés, budget temps…"></textarea>
+          <p id="formationPlanStatus" class="npc-chat-status" aria-live="polite"></p>
+          <div class="sql-buttons">
+            <button type="button" class="sql-btn submit" id="formationGenerateBtn" onclick="submitFormationPlanRequest()">Générer le plan</button>
+            <button type="button" class="sql-btn cancel" onclick="closeFormationServiceModal()">Fermer (Échap)</button>
+          </div>
+          <div id="formationPlanResultWrap" class="formation-plan-wrap" style="display: none;">
+            <h3 class="formation-plan-title">Plan proposé</h3>
+            <pre id="formationPlanResult" class="formation-plan-result"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Escape FYNE — confirmation avant ouverture du site (pas de window.confirm : souvent ignoré en aperçu intégré) -->
+    <div id="fyneEscapeModal" class="sql-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="fyneEscapeModalTitle">
+      <div class="sql-container">
+        <div class="sql-header">
+          <h2 id="fyneEscapeModalTitle">Escape FYNE — Protocol: GHOST</h2>
+          <button type="button" class="sql-close" onclick="closeFyneEscapeModal()" aria-label="Fermer">×</button>
+        </div>
+        <div class="sql-content">
+          <div id="fyneEscapeStep1">
+            <p class="npc-chat-hint">
+              Accès au site web Escape (hors du jeu). Rien ne s’ouvre tant que tu n’as pas validé l’étape suivante.
+            </p>
+            <div class="sql-buttons">
+              <button type="button" class="sql-btn submit" onclick="fyneEscapeContinueToStep2()">Continuer</button>
+              <button type="button" class="sql-btn cancel" onclick="closeFyneEscapeModal()">Fermer — rester dans le jeu</button>
+            </div>
+          </div>
+          <div id="fyneEscapeStep2" style="display: none;">
+            <p class="npc-chat-hint">Confirmer l’ouverture dans un <strong>nouvel onglet</strong> uniquement si tu le souhaites.</p>
+            <p id="fyneEscapeUrlLine" class="npc-chat-hint"></p>
+            <div class="sql-buttons">
+              <button type="button" class="sql-btn submit" onclick="fyneEscapeConfirmOpenSite()">Ouvrir dans un nouvel onglet</button>
+              <button type="button" class="sql-btn cancel" onclick="closeFyneEscapeModal()">Annuler</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat PNJ Aldo / Sandro / Manu / Alice (Gemini via serveur local) -->
+    <div id="npcChatModal" class="sql-modal" style="display: none;">
+      <div class="sql-container npc-chat-shell">
+        <div class="sql-header">
+          <h2 id="npcChatTitle">Aldo — formateur</h2>
+          <button type="button" class="sql-close" onclick="closeNpcChat()" aria-label="Fermer">×</button>
+        </div>
+        <div class="sql-content npc-chat-body">
+          <p id="npcChatHint" class="npc-chat-hint">Quatre interlocuteurs — Aldo (ateliers), Alice (Service Formation), Sandro (serveurs), Manu (IA Act UE &amp; RGPD).</p>
+          <div id="npcChatQuickChips" class="npc-chat-chips" aria-label="Messages rapides"></div>
+          <div id="npcChatLog" class="npc-chat-log"></div>
+          <p id="npcChatStatus" class="npc-chat-status" aria-live="polite"></p>
+          <div class="npc-chat-input-row">
+            <input
+              type="text"
+              id="npcChatInput"
+              class="npc-chat-input"
+              maxlength="2000"
+              placeholder="Écris ton message… (Entrée pour envoyer)"
+              autocomplete="off"
+            />
+            <button type="button" class="sql-btn submit" onclick="sendNpcChatMessage()">Envoyer</button>
+          </div>
+          <div class="sql-buttons">
+            <button type="button" class="sql-btn cancel" onclick="closeNpcChat()">Fermer (Échap)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+  <script src="game.js?v=pixel-workshop-lock"></script>
+</body>
+</html>
