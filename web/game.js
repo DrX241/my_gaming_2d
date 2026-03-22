@@ -4,11 +4,16 @@ const messageEl = document.getElementById('message');
 ctx.imageSmoothingEnabled = false;
 
 /** Monde bureau : taille logique fixe, mise à l’échelle dans le canvas (tout voir sur mobile / portrait). */
-const LOGICAL_W = 1200;
+const LOGICAL_W = 1280;
 const LOGICAL_H = 675;
+/** Marges intérieures : gauche/droite plus étroites qu’haut/bas pour élargir la carte (moins de vide latéral). */
+const ROOM_PAD_X = 18;
+const ROOM_PAD_Y = 30;
+const INNER_W = LOGICAL_W - 2 * ROOM_PAD_X;
+const INNER_H = LOGICAL_H - 2 * ROOM_PAD_Y;
 
 function makeOfficeRoom() {
-  return { x: 30, y: 30, w: LOGICAL_W - 60, h: LOGICAL_H - 60 };
+  return { x: ROOM_PAD_X, y: ROOM_PAD_Y, w: INNER_W, h: INNER_H };
 }
 
 let currentMap = 'office';
@@ -111,28 +116,28 @@ const maps = {
       {
         key: 'salon',
         name: 'Salon',
-        x: 30,
-        y: 30,
-        w: Math.floor((LOGICAL_W - 60) * 0.5),
-        h: Math.floor((LOGICAL_H - 60) * 0.6),
+        x: ROOM_PAD_X,
+        y: ROOM_PAD_Y,
+        w: Math.floor(INNER_W * 0.5),
+        h: Math.floor(INNER_H * 0.6),
         color: '#3d4a5c'
       },
       {
         key: 'chambre',
         name: 'Chambre',
-        x: 30 + Math.floor((LOGICAL_W - 60) * 0.5),
-        y: 30,
-        w: Math.floor((LOGICAL_W - 60) * 0.5) - 10,
-        h: Math.floor((LOGICAL_H - 60) * 0.6),
+        x: ROOM_PAD_X + Math.floor(INNER_W * 0.5),
+        y: ROOM_PAD_Y,
+        w: Math.floor(INNER_W * 0.5) - 10,
+        h: Math.floor(INNER_H * 0.6),
         color: '#4a3a5c'
       },
       {
         key: 'cuisine',
         name: 'Cuisine',
-        x: 30,
-        y: 30 + Math.floor((LOGICAL_H - 60) * 0.6),
-        w: LOGICAL_W - 60,
-        h: Math.floor((LOGICAL_H - 60) * 0.4) - 10,
+        x: ROOM_PAD_X,
+        y: ROOM_PAD_Y + Math.floor(INNER_H * 0.6),
+        w: INNER_W,
+        h: Math.floor(INNER_H * 0.4) - 10,
         color: '#5a5a3a'
       }
     ],
@@ -163,7 +168,7 @@ const maps = {
   }
 };
 
-/** Gauche : Open Space (haut) ; bande basse = Service Formation | couloir | coin café. Aile droite : serveurs + Réglementations ; bas = Data & IA. */
+/** Gauche : espace commun (haut) ; bande basse = Service Formation | couloir | coin café. Aile droite : serveurs + Réglementations ; bas = Data & IA. */
 function getRightWingMetrics(room) {
   const rx = room.x;
   const ry = room.y;
@@ -184,11 +189,11 @@ function getRightWingMetrics(room) {
   };
 }
 
-function getOpenSpaceAndFormationZones(rx, ry, W, H) {
+function getEspaceCommunAndFormationZones(rx, ry, W, H) {
   const marginBottom = 38;
   const innerH = H - marginBottom;
   const openW = Math.floor(W * 0.62);
-  /** Open space plus haut → bande basse (couloir / café) commence plus bas, loin sous la porte Département Data & IA. */
+  /** Espace commun plus haut → bande basse (couloir / café) commence plus bas, loin sous la porte Département Data & IA. */
   const openH = Math.floor(innerH * 0.79);
   /** Bande basse jusqu’au bas de la pièce (sinon ~38 px sans couleur ni murs alignés en bas). */
   const lowerH = H - openH;
@@ -213,11 +218,11 @@ function getOpenSpaceAndFormationZones(rx, ry, W, H) {
 }
 
 /**
- * Salle administrateur — même largeur que le Service Formation (`leftW`), ancrée haut-gauche de l’open space ;
- * profondeur = moitié de la hauteur de l’open space (le reste de l’open reste libre au sud).
+ * Salle administrateur — même largeur que le Service Formation (`leftW`), ancrée haut-gauche de l’espace commun ;
+ * profondeur = moitié de la hauteur de l’espace commun (le reste de l’espace reste libre au sud).
  */
 function getAdminRoomGeometry() {
-  const sp = getOpenSpaceAndFormationZones(room.x, room.y, room.w, room.h);
+  const sp = getEspaceCommunAndFormationZones(room.x, room.y, room.w, room.h);
   const oz = sp.open;
   const lowerY = sp.lowerY;
   const t = 14;
@@ -240,7 +245,7 @@ function getOfficeZonesFromRoom() {
   const W = room.w;
   const H = room.h;
   const m = getRightWingMetrics(room);
-  const sp = getOpenSpaceAndFormationZones(rx, ry, W, H);
+  const sp = getEspaceCommunAndFormationZones(rx, ry, W, H);
   const adm = getAdminRoomGeometry();
   return [
     {
@@ -255,7 +260,8 @@ function getOfficeZonesFromRoom() {
     },
     {
       key: 'open',
-      name: 'Open Space',
+      name: 'Espace commun',
+      hideLabel: true,
       x: sp.open.x,
       y: sp.open.y,
       w: sp.open.w,
@@ -341,7 +347,7 @@ function applyOfficeStructure() {
   const ry = room.y;
   const H = room.h;
   const dh = partitionY - ry;
-  /** Mur vertical open space | aile droite — portes parallèles au mur, centrées sur chaque segment, ouverture côté open space. */
+  /** Mur vertical espace commun | aile droite — portes parallèles au mur, centrées sur chaque segment, ouverture côté espace commun. */
   const wallX = splitX - 8;
   const wallW = 14;
   const doorW = 14;
@@ -354,7 +360,7 @@ function applyOfficeStructure() {
 
   const dhBot = ry + H - partitionY;
   const doorHBot = Math.min(66, Math.max(28, dhBot - minPad * 2));
-  /** Plus haut dans la moitié basse qu’une porte centrée : s’éloigne du bandeau couloir / coin café (open space). */
+  /** Plus haut dans la moitié basse qu’une porte centrée : s’éloigne du bandeau couloir / coin café (espace commun). */
   const doorBotY = partitionY + Math.floor((dhBot - doorHBot) / 4);
 
   if (doorTopY > ry + 6) {
@@ -367,7 +373,7 @@ function applyOfficeStructure() {
       y: doorTopY,
       w: doorW,
       h: doorHTop,
-      text: 'Porte — salle des serveurs FYNE (open space)',
+      text: 'Porte — salle des serveurs FYNE (espace commun)',
       locked: false,
       open: false,
       solid: true
@@ -397,7 +403,7 @@ function applyOfficeStructure() {
       y: doorBotY,
       w: doorW,
       h: doorHBot,
-      text: 'Porte — Département Data & IA (open space)',
+      text: 'Porte — Département Data & IA (espace commun)',
       locked: false,
       open: false,
       solid: true
@@ -553,7 +559,7 @@ function applyOfficeStructure() {
     );
   }
 
-  /** Mur horizontal plein entre salle serveurs/archives et Département Data & IA — accès uniquement via open space (portes sur le mur vertical). */
+  /** Mur horizontal plein entre salle serveurs/archives et Département Data & IA — accès uniquement via l’espace commun (portes sur le mur vertical). */
   const partWallH = 14;
   const partWallY = partitionY - Math.floor(partWallH / 2);
   objects.push(
@@ -623,7 +629,7 @@ function applyOfficeStructure() {
       })
     );
   }
-  const spBand = getOpenSpaceAndFormationZones(room.x, room.y, room.w, room.h);
+  const spBand = getEspaceCommunAndFormationZones(room.x, room.y, room.w, room.h);
   const rx = room.x;
   const openW = spBand.open.w;
   const lw = spBand.lowerY;
@@ -637,7 +643,7 @@ function applyOfficeStructure() {
   const doorH = Math.min(44, Math.max(28, lh - 16));
   const doorY = lw + Math.floor((lh - doorH) / 2);
 
-  /** Murs extérieurs : les salles sont fermées ; entrée depuis l’open space uniquement au-dessus du couloir, puis par les portes. */
+  /** Murs extérieurs : les salles sont fermées ; entrée depuis l’espace commun uniquement au-dessus du couloir, puis par les portes. */
   objects.push(
     mark({
       type: 'wall',
@@ -1579,7 +1585,7 @@ function placeAldoNpcInSalleInfo() {
 
 /**
  * Bande praticable sous les baies FYNE et au-dessus de la console — évite le mur bas (cloison Data & IA)
- * et la console, et rapproche Sandro de la porte open space (côté gauche).
+ * et la console, et rapproche Sandro de la porte vers l’espace commun (côté gauche).
  */
 function getSandroWalkBounds() {
   const m = getRightWingMetrics(room);
@@ -1632,7 +1638,7 @@ function placeSandroNpc() {
     sandroNpc.y = b.minY + 6;
   }
   sandroNpc.wanderTimer = 0.35;
-  /** Vers la gauche = vers la porte open space (détection des portes en pause café). */
+  /** Vers la gauche = vers la porte de l’espace commun (détection des portes en pause café). */
   sandroNpc.vx = -1;
   sandroNpc.vy = 0;
   sandroNpc.homeX = sandroNpc.x;
@@ -2365,7 +2371,7 @@ function isBlockedAtEntity(x, y, size) {
 function getAdminOfficeSpawn() {
   const door = objects.find(o => o.type === 'door' && o.adminDoor);
   if (door) {
-    /** Devant la porte (côté open space, à l’est de la salle). */
+    /** Devant la porte (côté espace commun, à l’est de la salle). */
     const x = Math.floor(door.x + door.w + 12);
     const y = Math.floor(door.y + door.h / 2 - player.size / 2);
     return {
@@ -4081,7 +4087,7 @@ function draw() {
   ctx.font = 'bold 16px Arial';
   ctx.fillText(mapData.name, room.x + 10, room.y + 25);
   
-  // Draw zones (grandes zones d’abord, puis les plus petites par-dessus — ex. salle admin dans l’open space)
+  // Draw zones (grandes zones d’abord, puis les plus petites par-dessus — ex. salle admin dans l’espace commun)
   const zones = getCurrentZones();
   const zonesByAreaDesc = [...zones].sort((a, b) => b.w * b.h - a.w * a.h);
   zonesByAreaDesc.forEach(zone => {
@@ -5593,8 +5599,8 @@ function buildZoneEntryMessage(zoneKey, zoneName, profile, firstVisitThisSession
         : `Salle administrateur — ${prenom}.`;
     case 'open':
       return firstVisitThisSession
-        ? `Bonjour ${prenom} — bienvenue dans l’open space.`
-        : `${prenom}, tu es de retour dans l’open space.`;
+        ? `Bonjour ${prenom} — bienvenue dans l’espace commun.`
+        : `${prenom}, tu es de retour dans l’espace commun.`;
     case 'salle_info':
       return firstVisitThisSession
         ? `Aldo t’accueille au Département Data & IA, ${prenom} — ateliers SQL, Python, cybersécurité.`
